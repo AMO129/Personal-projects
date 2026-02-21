@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moses Abraham | Portfolio</title>
+ 
+</head>
+<body>
+  <header>
+    <h1>MY PORTFOLIO</h1>
+    <p>Auto-updating portfolio (from Google Sheets)</p>
+  </header>
+
+  <main>
+    <section id="projects">
+      <h2>My Projects</h2>
+      <div id="project-list" class="grid"></div>
+    </section>
+
+    <section id="blogs">
+      <h2>My Blog Posts</h2>
+      <div id="blog-list" class="grid"></div>
+    </section>
+  </main>
+
+  <footer>
+    <button class="click">
+      <a href="https://docs.google.com/spreadsheets/d/17Y6wejfh9AILhsNXVbYwtmLCx_MfCZvuODV-lievVps/edit?gid=0#gid=0" 
+      class="link">
+      Enter details
+        </a>
+    </button>
+    <p>© <span id="year"></span> Moses Abraham. Built with HTML, CSS & JavaScript.</p>
+  </footer>
+
+  
+</body>
+</html>
+
+
+<style>
+  .link:hover{
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+  }
+  .click{
+    background-color: #0078ff;
+    width: 150px;
+    height: 50px;
+    border-radius: 5%;
+    
+  }
+  .click:hover{
+    box-shadow: 5px 5px 10px rgb(0, 0, 0, 0.15);
+    background-color: rgb(13, 235, 42);
+  
+  }
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #cccce2;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #111;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+main {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+h2 {
+  border-bottom: 3px solid #0078ff;
+  display: inline-block;
+  padding-bottom: 5px;
+}
+
+.grid {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.card {
+  background: white;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem;
+  background: #111;
+  color: white;
+  margin-top: 3rem;
+}
+
+</style>
+
+
+<script>
+// Replace this with your public Google Sheet ID
+const SHEET_ID = "17Y6wejfh9AILhsNXVbYwtmLCx_MfCZvuODV-lievVps";
+const API_KEY = "AIzaSyDW1Yk4SimAEtSB98yCq8sO7FiMKJlt1y8";
+const RANGE = "'Portfolio Data'!A3:D"; // Example range
+
+const projectList = document.getElementById("project-list");
+const blogList = document.getElementById("blog-list");
+document.getElementById("year").textContent = new Date().getFullYear();
+
+async function fetchSheetData() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/17Y6wejfh9AILhsNXVbYwtmLCx_MfCZvuODV-lievVps/values/'Portfolio Data'!A2:D?key=AIzaSyDW1Yk4SimAEtSB98yCq8sO7FiMKJlt1y8`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (!data.values) return;
+  renderData(data.values);
+}
+
+function renderData(rows) {
+  projectList.innerHTML = "";
+  blogList.innerHTML = "";
+
+  rows.forEach(([type, title, desc, link]) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <h3>${title}</h3>
+      <p>${desc}</p>
+      <a href="${link}" target="_blank">View</a>
+    `;
+    if (type.toLowerCase() === "project") projectList.appendChild(card);
+    else if (type.toLowerCase() === "blog") blogList.appendChild(card);
+  });
+}
+
+fetchSheetData();
+
+</script>
