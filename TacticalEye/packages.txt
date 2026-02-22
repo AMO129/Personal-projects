@@ -1,1 +1,1 @@
-libGl1
+libGl.so.1
