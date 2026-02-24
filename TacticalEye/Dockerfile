@@ -4,15 +4,31 @@ FROM python:3.10-slim
 # Set the working directory on the server
 WORKDIR /app
 
-# Install the critical C++ system libraries for OpenCV
+# THE HEAVY ARMOR: Every single system library required by OpenCV and PyAV (WebRTC)
 RUN apt-get update && apt-get install -y \
+    build-essential \
     libgl1 \
     libglib2.0-0 \
-    build-essential \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    ffmpeg \
+    pkg-config \
+    python3-dev \
+    libavformat-dev \
+    libavcodec-dev \
+    libavdevice-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libswresample-dev \
+    libavfilter-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy your requirements file and install Python libraries
+# Copy your requirements file
 COPY requirements.txt .
+
+# Upgrade pip and install Python packages
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all your code into the server
