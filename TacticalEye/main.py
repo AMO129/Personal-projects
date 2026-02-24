@@ -4,7 +4,7 @@ import av
 from ultralytics import YOLO
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
-# --- 1. TACTICAL HUD THEMING (CSS) ---
+# --- TACTICAL HUD THEMING ---
 st.set_page_config(page_title="Tactical Eye Command", layout="wide")
 
 st.markdown("""
@@ -30,47 +30,43 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 
-# --- 2. INFRASTRUCTURE & AI CORE ---
+# --- INFRASTRUCTURE & AI CORE ---
 @st.cache_resource
 def load_brain():
-    # Caching prevents reloading the model every time a user connects
+    # Load the model. It will automatically download yolov8n.pt if missing.
     return YOLO('yolov8n.pt')
 
 
 model = load_brain()
 
-# WebRTC requires STUN servers to navigate firewalls on public networks
+# STUN servers allow the video feed to punch through user firewalls
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
-# --- 3. COMMAND SIDEBAR ---
+# --- COMMAND SIDEBAR ---
 st.sidebar.title("📡 HQ COMMAND")
 st.sidebar.markdown("---")
 conf_threshold = st.sidebar.slider("Sensor Sensitivity", 0.0, 1.0, 0.65)
 
-# --- 4. TACTICAL FEED (WEBRTC CALLBACK) ---
+# --- TACTICAL FEED ---
 st.write("### 📹 LIVE SECTOR SCAN")
 
 
 def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
-    """
-    This function processes the incoming video frames from the user's browser.
-    """
-    # Convert WebRTC frame to an OpenCV-compatible array
+    # Convert WebRTC frame to an OpenCV array
     img = frame.to_ndarray(format="bgr24")
 
-    # AI Inference
-    results = model(img, conf=conf_threshold)
+    # AI Inference (verbose=False prevents log spam on the server)
+    results = model(img, conf=conf_threshold, verbose=False)
 
-    # Plot the bounding boxes on the frame
+    # Plot bounding boxes
     annotated_frame = results[0].plot()
 
-    # Convert the processed array back to a WebRTC frame
+    # Convert back to WebRTC frame
     return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
 
-# Initialize the WebRTC Streamer
 webrtc_streamer(
     key="tactical-radar",
     mode=WebRtcMode.SENDRECV,
