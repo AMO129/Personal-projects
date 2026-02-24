@@ -1,26 +1,22 @@
 import streamlit as st
 import cv2
-import os
-import time
+import av
 from ultralytics import YOLO
-import numpy as np
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
 # --- 1. TACTICAL HUD THEMING (CSS) ---
 st.set_page_config(page_title="Tactical Eye Command", layout="wide")
 
 st.markdown("""
     <style>
-    /* Main Background */
     .stApp {
         background-color: #0E1117;
-        color: #00FF41; /* Tactical Matrix Green */
+        color: #00FF41; 
     }
-    /* Sidebar Styling */
     section[data-testid="stSidebar"] {
         background-color: #1A1C24;
         border-right: 2px solid #00FF41;
     }
-    /* Critical Alert Flashing */
     @keyframes blinker {
         50% { opacity: 0; }
     }
@@ -33,75 +29,55 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. INFRASTRUCTURE ---
-if not os.path.exists('captures'):
-    os.makedirs('captures')
 
-
+# --- 2. INFRASTRUCTURE & AI CORE ---
 @st.cache_resource
 def load_brain():
+    # Caching prevents reloading the model every time a user connects
     return YOLO('yolov8n.pt')
 
 
 model = load_brain()
 
-# Session State for persistence
-if 'last_saved_time' not in st.session_state:
-    st.session_state.last_saved_time = 0
-if 'target_confirmation' not in st.session_state:
-    st.session_state.target_confirmation = {}
+# WebRTC requires STUN servers to navigate firewalls on public networks
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+)
 
 # --- 3. COMMAND SIDEBAR ---
 st.sidebar.title("📡 HQ COMMAND")
 st.sidebar.markdown("---")
 conf_threshold = st.sidebar.slider("Sensor Sensitivity", 0.0, 1.0, 0.65)
-active = st.sidebar.toggle("Activate Defense Perimeter", value=True)
 
-status_box = st.sidebar.empty()
-log_box = st.sidebar.expander("Mission Logs", expanded=True)
-
-# --- 4. TACTICAL FEED ---
+# --- 4. TACTICAL FEED (WEBRTC CALLBACK) ---
 st.write("### 📹 LIVE SECTOR SCAN")
-frame_placeholder = st.empty()
 
-cap = cv2.VideoCapture(0)
-CONFIRMATION_THRESHOLD = 5
 
-while cap.isOpened() and active:
-    success, frame = cap.read()
-    if not success: break
+def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
+    """
+    This function processes the incoming video frames from the user's browser.
+    """
+    # Convert WebRTC frame to an OpenCV-compatible array
+    img = frame.to_ndarray(format="bgr24")
 
     # AI Inference
-    results = model(frame, conf=conf_threshold)
+    results = model(img, conf=conf_threshold)
+
+    # Plot the bounding boxes on the frame
     annotated_frame = results[0].plot()
 
-    # Process detections with Tactical Logic
-    for result in results:
-        for box in result.boxes:
-            label = model.names[int(box.cls[0])]
-            conf = float(box.conf[0])
+    # Convert the processed array back to a WebRTC frame
+    return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
-            st.session_state.target_confirmation[label] = st.session_state.target_confirmation.get(label, 0) + 1
 
-            if st.session_state.target_confirmation[label] >= CONFIRMATION_THRESHOLD:
-                if conf > 0.75:
-                    status_box.markdown('<p class="critical-alert">⚠️ CRITICAL: TARGET CONFIRMED</p>',
-                                        unsafe_allow_html=True)
+# Initialize the WebRTC Streamer
+webrtc_streamer(
+    key="tactical-radar",
+    mode=WebRtcMode.SENDRECV,
+    rtc_configuration=RTC_CONFIGURATION,
+    video_frame_callback=video_frame_callback,
+    media_stream_constraints={"video": True, "audio": False},
+    async_processing=True
+)
 
-                    # Evidence Capture
-                    current_time = time.time()
-                    if current_time - st.session_state.last_saved_time > 2:
-                        timestamp = time.strftime("%H%M%S")
-                        filename = f"captures/{label}_{timestamp}.jpg"
-                        cv2.imwrite(filename, frame)
-                        log_box.write(f"[{time.strftime('%H:%M')}] {label.upper()} SECURED")
-                        st.session_state.last_saved_time = current_time
-                else:
-                    status_box.success("Perimeter Secure")
-
-    # Display conversion (BGR to RGB)
-    display_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
-    frame_placeholder.image(display_frame, channels="RGB", use_container_width=True)
-
-cap.release()
-st.sidebar.info("System Standby.")
+st.sidebar.info("System Standby. Grant camera permissions in browser to initialize perimeter scan.")
