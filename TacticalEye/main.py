@@ -41,23 +41,25 @@ def load_brain():
 model = load_brain()
 
 # ----FETCH TWILIO TURN SERVERS---
-@st.cache_data 
+@st.cache_data
 def get_ice_servers():
     try:
-          #Pull credentials safely from Streamlit Secrets 
-            account_sid = st.secrets["TWILIO_ACCOUNT_SID"]
-            auth_token = st.secrets["TWILIO_AUTH_TOKEN"]
+        # Pull credentials safely from Streamlit Secrets
+        account_sid = st.secrets["TWILIO_ACCOUNT_SID"]
+        auth_token = st.secrets["TWILIO_AUTH_TOKEN"]
+        client = Client(account_sid, auth_token)
+        token = client.tokens.create()
+        return token.ice_servers
+    except Exception as e:
+        st.warning("Twilio credentials not found. Falling back to free STUN.")
+        return [{"urls": ["stun:stun.l.google.com:19302"]}]
 
-            client = Client(account_sid, auth_token)
-            token = client.tokens.create()
-            return
-            token.ice_servers
-except Exception as e:
-           st.warning("Twilio credentials not found, falling back to free STUN.")
-           return [{"urls":["stun:stun.l.google.com:19302"]}]
 
-#---RTC FUNCTION---
-RTC_CONFIGURATION = RTCConfiguration({"iceServers":get_ice_servers()})
+#RTC FUNCTION
+
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": get_ice_servers()}
+)
 
 
 # --- COMMAND SIDEBAR ---
