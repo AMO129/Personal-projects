@@ -50,12 +50,12 @@ def get_ice_servers():
 
             client = Client(account_sid, auth_token)
             token = client.tokens.create()
-        return
+    return
             token.ice_servers
                 expect Exception as e:
 
 st.warning("Twilio credentials not found, falling back to free STUN.")
-                return [{"urls":["stun:stun.l.google.com:19302"]}]
+    return [{"urls":["stun:stun.l.google.com:19302"]}]
 
 #---RTC FUNCTION---
 RTC_CONFIGURATION = RTCConfiguration({"iceServers":get_ice_servers()})
