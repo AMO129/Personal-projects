@@ -52,7 +52,7 @@ def get_ice_servers():
             token = client.tokens.create()
     return
             token.ice_servers
-    except Exception as e:
+except Exception as e:
 
 st.warning("Twilio credentials not found, falling back to free STUN.")
     return [{"urls":["stun:stun.l.google.com:19302"]}]
