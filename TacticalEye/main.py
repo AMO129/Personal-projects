@@ -44,8 +44,7 @@ model = load_brain()
 @st.cache_data 
 def get_ice_servers():
     try:
-          #Pull
-        credentials safely from Streamlit Secrets 
+          #Pull credentials safely from Streamlit Secrets 
             account_sid = st.secrets["TWILIO_ACCOUNT_SID"]
             auth_token = st.secrets["TWILIO_AUTH_TOKEN"]
 
