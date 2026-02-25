@@ -50,7 +50,7 @@ def get_ice_servers():
 
             client = Client(account_sid, auth_token)
             token = client.tokens.create()
-                            return
+        return
             token.ice_servers
                 expect Exception as e:
 
